@@ -1,5 +1,11 @@
 # 🐒 Macaque Dock
 
+
+<p align="center">
+  <img src="images/macaque-dock-main.png" alt="Macaque Dock running on KDE Plasma 6" width="900">
+</p>
+
+
 **Macaque Dock** is a macOS-inspired application dock for **KDE Plasma 6** and **Wayland**.
 
 Macaque Dock started from the open-source Crystal Dock codebase and has since received substantial updates, new features, interface changes, and MacaqueOS-specific improvements.
