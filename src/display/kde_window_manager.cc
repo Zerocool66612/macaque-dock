@@ -330,6 +330,8 @@ bool KdeWindowManager::showingDesktop_;
   }
 
   windows_[window]->initialized = true;
+
+
   if (!windows_[window]->skipTaskbar) {
     emit self()->windowAdded(windows_[window].get());
   }

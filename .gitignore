@@ -1,1 +1,7 @@
 build
+
+# Macaque Dock local development backups
+save-spots/
+*.backup
+*.before-*
+*.working-*

@@ -50,13 +50,14 @@ enum class PanelStyle {
     Glass2D_Floating, Glass2D_NonFloating };
 
 constexpr int kDefaultMinSize = 48;
-constexpr int kDefaultMaxSize = 128;
+constexpr int kDefaultMaxSize = 64;
 constexpr float kDefaultSpacingFactor = 0.5;
 constexpr bool kDefaultShowTooltip = true;
+constexpr bool kDefaultFullScreenApplicationLauncher = false;
 constexpr int kDefaultTooltipFontSize = 24;
-constexpr float kDefaultBackgroundAlpha = 0.42;
+constexpr float kDefaultBackgroundAlpha = 0.498;
 constexpr float kDefaultBackgroundAlphaMetal2D = 0.68;
-constexpr char kDefaultBackgroundColor[] = "#638abd";
+constexpr char kDefaultBackgroundColor[] = "#6bffaa";
 constexpr char kDefaultBackgroundColor2D[] = "#86baff";
 constexpr char kDefaultBackgroundColorMetal2D[] = "#7381a6";
 constexpr char kDefaultBorderColor[] = "#b1c4de";
@@ -285,6 +286,20 @@ class MultiDockModel : public QObject {
 
   void setShowTooltip(bool value) {
     setAppearanceProperty(kGeneralCategory, kShowTooltip, value);
+  }
+
+  bool fullScreenApplicationLauncher() const {
+    return appearanceProperty(
+        kGeneralCategory,
+        kFullScreenApplicationLauncher,
+        kDefaultFullScreenApplicationLauncher);
+  }
+
+  void setFullScreenApplicationLauncher(bool value) {
+    setAppearanceProperty(
+        kGeneralCategory,
+        kFullScreenApplicationLauncher,
+        value);
   }
 
   int tooltipFontSize() const {
@@ -663,6 +678,28 @@ class MultiDockModel : public QObject {
     return setAppearanceProperty(kKeyboardLayoutCategory, kUserKeyboardLayouts, value.join(";"));
   }
 
+  // Macaque Dock per-application icon overrides.
+  // An empty value means use the application's normal system-theme icon.
+  QString customLauncherIcon(const QString& appId) const {
+    return appearanceConfig_.value(
+        QString("IconOverrides/") + appId, QString()).toString();
+  }
+
+  void setCustomLauncherIcon(const QString& appId, const QString& iconPath) {
+    if (iconPath.isEmpty()) {
+      appearanceConfig_.remove(QString("IconOverrides/") + appId);
+    } else {
+      appearanceConfig_.setValue(QString("IconOverrides/") + appId, iconPath);
+    }
+
+    appearanceConfig_.sync();
+  }
+
+  void resetCustomLauncherIcons() {
+    appearanceConfig_.remove(QString("IconOverrides"));
+    appearanceConfig_.sync();
+  }
+
   QStringList launchers(int dockId) const {
     return dockProperty(dockId, kGeneralCategory, kLaunchers, QString())
         .split(";", Qt::SkipEmptyParts);
@@ -773,6 +810,8 @@ class MultiDockModel : public QObject {
   static constexpr char kMinimumIconSize[] = "minimumIconSize";
   static constexpr char kSpacingFactor[] = "spacingFactor";
   static constexpr char kShowTooltip[] = "showTooltip";
+  static constexpr char kFullScreenApplicationLauncher[] =
+      "fullScreenApplicationLauncher";
   static constexpr char kTooltipFontSize[] = "tooltipFontSize";
   static constexpr char kPanelStyle[] = "panelStyle";
   static constexpr char kFloatingMargin[] = "floatingMargin";

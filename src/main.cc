@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
 
   // Enforces single instance.
   QSharedMemory sharedMemory;
-  sharedMemory.setKey("crystal-dock-key");
+  sharedMemory.setKey("macaque-dock-key");
   if (!sharedMemory.create(1 /*byte*/)) {
     // The failure might have been caused by a previous crash.
     sharedMemory.attach();
@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
 
   auto configHome = qEnvironmentVariable("XDG_CONFIG_HOME").trimmed();
   if (configHome.isEmpty()) { configHome = QDir::homePath() + "/.config"; }
-  const auto configDir = configHome + "/crystal-dock";
+  const auto configDir = configHome + "/macaque-dock";
   maybeCopyOldConfigOnFirstRun(configDir);
   maybeCopyPresetConfigOnFirstRun(configDir);
   crystaldock::MultiDockModel model(configDir);

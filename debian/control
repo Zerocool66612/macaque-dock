@@ -1,0 +1,26 @@
+Source: macaque-dock
+Section: utils
+Priority: optional
+Maintainer: Drew Owen <noreply@github.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake,
+ build-essential,
+ qt6-base-dev (>= 6.6),
+ qt6-base-private-dev (>= 6.6),
+ qt6-wayland-dev,
+ libwayland-dev (>= 1.22),
+ liblayershellqtinterface-dev (>= 6.0),
+ libkf6windowsystem-dev
+Standards-Version: 4.7.0
+Homepage: https://github.com/Zerocool66612/macaque-dock
+Rules-Requires-Root: no
+
+Package: macaque-dock
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: macOS-inspired dock for KDE Plasma 6
+ Macaque Dock is a customizable desktop dock designed for
+ KDE Plasma 6 and Wayland.
+ .
+ Macaque Dock is derived from the GPL-licensed Crystal Dock project.

@@ -22,6 +22,7 @@
 
 #include <QDir>
 #include <QGuiApplication>
+#include <QFileDialog>
 #include <QMessageBox>
 #include <QProcess>
 #include <QProcessEnvironment>
@@ -87,50 +88,79 @@ void Program::draw(QPainter *painter) const {
   auto taskCount = static_cast<int>(tasks_.size());
   // For launching feedback if bouncing launcher icon is not enabled.
   if (taskCount == 0 && launching_&& !model_->bouncingLauncherIcon()) { taskCount = 1; }
-  if (parent_->showTaskManager() && taskCount > 0) {  // Show task count indicator.
-    static constexpr int kMaxVisibleTaskCount = 4;
-    if (taskCount > kMaxVisibleTaskCount) { taskCount = kMaxVisibleTaskCount; }
-    auto activeTask = getActiveTask();
-    if (activeTask > kMaxVisibleTaskCount - 1) { activeTask = kMaxVisibleTaskCount - 1; }
+  if (parent_->showTaskManager() && taskCount > 0) {
+    // Macaque Dock running-window indicators.
+    // One dot per open window, up to four dots.
 
-    // Size (width if horizontal, or height if vertical) of the indicator.
-    const int size = parent_->isGlass()
-        ? DockPanel::kIndicatorSizeGlass
-        : parent_->isFlat2D()
-            ? DockPanel::kIndicatorSizeFlat2D
-            : DockPanel::kIndicatorSizeMetal2D;
-    const auto spacing = DockPanel::kIndicatorSpacing;
-    const auto totalSize = taskCount * size + (taskCount - 1) * spacing;
-    auto x = left_ + (getWidth() - totalSize) / 2 + size / 2;
-    auto y = top_ + (getHeight() - totalSize) / 2 + size / 2;
-    for (int i = 0; i < taskCount; ++i) {
-      // If bouncing launcher icon is not enabled, we use active color
-      // to provide feedback.
-      bool useActiveColor = (i == activeTask) || attentionStrong_
-          || (launching_ && !model_->bouncingLauncherIcon());
-      if (parent_->isGlass()) {
-        const auto baseColor = useActiveColor
-            ? model_->activeIndicatorColor() : model_->inactiveIndicatorColor();
-        drawIndicator(orientation_, x, parent_->taskIndicatorPos(),
-                      parent_->taskIndicatorPos(), y,
-                      size, DockPanel::k3DPanelThickness, baseColor, painter);
-      } else if (parent_->isFlat2D()) {
-        const auto baseColor = useActiveColor
-            ? model_->activeIndicatorColor2D() : model_->inactiveIndicatorColor2D();
-        drawIndicatorFlat2D(orientation_, x, parent_->taskIndicatorPos(),
-                            parent_->taskIndicatorPos(), y,
-                            size, baseColor, painter);
-      } else {  // Metal 2D.
-          const auto baseColor = useActiveColor
-              ? model_->activeIndicatorColorMetal2D() : model_->inactiveIndicatorColorMetal2D();
-          drawIndicatorMetal2D(parent_->position(), x, parent_->taskIndicatorPos(),
-                               parent_->taskIndicatorPos(), y,
-                               size, baseColor, painter);
+    const int visibleDots =
+        qMin(taskCount, 4);
+
+    const bool isActive =
+        getActiveTask() >= 0 ||
+        attentionStrong_ ||
+        (launching_ && !model_->bouncingLauncherIcon());
+
+    const QColor indicatorColor =
+        isActive
+            ? model_->activeIndicatorColor2D()
+            : model_->inactiveIndicatorColor2D();
+
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(indicatorColor);
+
+    const int dotSize = 5;
+    const int dotSpacing = 3;
+
+    if (isHorizontal()) {
+      const int totalWidth =
+          visibleDots * dotSize +
+          (visibleDots - 1) * dotSpacing;
+
+      int x =
+          left_ +
+          (getWidth() - totalWidth) / 2;
+
+      int y;
+
+      if (parent_->isTop()) {
+        y = top_ - 7;
+      } else {
+        y = top_ + getHeight() + 3;
       }
-      x += (size + spacing);
-      y += (size + spacing);
+
+      for (int i = 0; i < visibleDots; ++i) {
+        painter->drawEllipse(
+            QRectF(x, y, dotSize, dotSize));
+
+        x += dotSize + dotSpacing;
+      }
+
+    } else {
+      const int totalHeight =
+          visibleDots * dotSize +
+          (visibleDots - 1) * dotSpacing;
+
+      int x;
+
+      if (parent_->isLeft()) {
+        x = left_ - 7;
+      } else {
+        x = left_ + getWidth() + 3;
+      }
+
+      int y =
+          top_ +
+          (getHeight() - totalHeight) / 2;
+
+      for (int i = 0; i < visibleDots; ++i) {
+        painter->drawEllipse(
+            QRectF(x, y, dotSize, dotSize));
+
+        y += dotSize + dotSpacing;
+      }
     }
   }
+
   painter->setRenderHint(QPainter::Antialiasing, false);
   painter->restore();
 
@@ -247,6 +277,12 @@ bool Program::addTask(const WindowInfo* task) {
   if ((app && app->appId == appId_) || task->appId == appId_.toStdString()) {
     tasks_.push_back(ProgramTask(task->window, QString::fromStdString(task->title),
                                  task->demandsAttention));
+
+    if (appId_.contains("Unity", Qt::CaseInsensitive)) {
+      qDebug() << "UNITY TASK ACCEPTED:"
+               << QString::fromStdString(task->title)
+               << "TOTAL =" << tasks_.size();
+    }
     if (task->demandsAttention) {
       setDemandsAttention(true);
     }
@@ -384,6 +420,40 @@ void Program::createMenu() {
                                      closeAllWindows();
                                    });
                                  });
+
+  menu_.addSeparator();
+
+  if (pinned_) {
+    menu_.addAction(
+        QIcon::fromTheme("preferences-desktop-icons"),
+        QString("Change Dock &Icon..."),
+        this,
+        [this] {
+          parent_->minimize();
+
+          QTimer::singleShot(DockPanel::kExecutionDelayMs, [this] {
+            const QString file = QFileDialog::getOpenFileName(
+                parent_,
+                QString("Choose Dock Icon"),
+                QDir::homePath(),
+                QString("Images (*.png *.svg *.svgz *.xpm *.jpg *.jpeg *.webp);;All Files (*)"));
+
+            if (!file.isEmpty()) {
+              model_->setCustomLauncherIcon(appId_, file);
+              parent_->reloadTasks();
+            }
+          });
+        });
+
+    menu_.addAction(
+        QIcon::fromTheme("edit-undo"),
+        QString("Use &System Icon"),
+        this,
+        [this] {
+          model_->setCustomLauncherIcon(appId_, QString());
+          parent_->reloadTasks();
+        });
+  }
 
   menu_.addSeparator();
   menu_.addAction(QIcon::fromTheme("configure"), QString("Edit &Launchers"), parent_,

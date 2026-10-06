@@ -22,6 +22,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <utility>
 
 #include <QColor>
@@ -51,6 +52,7 @@
 #include "battery_indicator.h"
 #include "clock.h"
 #include "desktop_selector.h"
+#include "folder_stack.h"
 #include "keyboard_layout.h"
 #include "multi_dock_view.h"
 #include "program.h"
@@ -655,49 +657,73 @@ void DockPanel::drawGlass3D(QPainter& painter) {
     // Draw the items from the end to avoid zoomed items getting clipped by
     // non-zoomed items.
     for (int i = itemCount() - 1; i >= 0; --i) {
-      items_[i]->draw(&painter);
+      if (items_[i]->getAppId() == "macaque-downloads-stack" ||
+        items_[i]->getAppId() == "trash") {
+    }
+
+    items_[i]->draw(&painter);
     }
   }
 }
 
 void DockPanel::draw2D(QPainter& painter) {
-  const QColor bgColor = isGlass2D()
-      ? model_->backgroundColor()
-      : isFlat2D()
-          ? model_->backgroundColor2D()
-          : model_->backgroundColorMetal2D();
-  const auto showBorder = isGlass2D() || isMetal2D();
-  const QColor borderColor = isGlass2D() ? model_->borderColor() : model_->borderColorMetal2D();
+  painter.save();
+  painter.setRenderHint(QPainter::Antialiasing, true);
+  painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+
+  // Macaque Dock macOS-inspired glass appearance.
+  // Macaque Dock colors come from Appearance Settings.
+  // Keep the transparency selected by the user.
+  const QColor bgColor = backgroundColor_;
+
+  // Give the border a subtle translucent appearance while preserving
+  // the user's selected border color.
+  QColor borderColor = borderColor_;
+  borderColor.setAlpha(90);
+
   if (isHorizontal()) {
     const int y = isTop()
-        ? isFloating() ? floatingMargin_ : 0
-        : isFloating() ? maxHeight_ - backgroundHeight_ - floatingMargin_
-                       : maxHeight_ - backgroundHeight_;
-    const int r = isGlass2D()
-        ? backgroundHeight_ / 16
-        : isFlat2D()
-            ? backgroundHeight_ / 4
-            : 0;
+        ? (isFloating() ? floatingMargin_ : 0)
+        : (isFloating()
+            ? maxHeight_ - backgroundHeight_ - floatingMargin_
+            : maxHeight_ - backgroundHeight_);
+
+    const int radius = backgroundHeight_ / 4;
+
     fillRoundedRect(
-        (maxWidth_ - backgroundWidth_) / 2, y, backgroundWidth_ - 1, backgroundHeight_ - 1,
-         r, showBorder, borderColor, bgColor, &painter);
-  } else {  // Vertical
-    const int x =  isLeft()
-        ? isFloating() ? floatingMargin_ : 0
-        : isFloating() ? maxWidth_ - backgroundWidth_ - floatingMargin_
-                       : maxWidth_ - backgroundWidth_;
-    const int r = isGlass2D()
-        ? backgroundWidth_ / 16
-        : isFlat2D()
-            ? backgroundWidth_ / 4
-            : 0;
+        (maxWidth_ - backgroundWidth_) / 2,
+        y,
+        backgroundWidth_ - 1,
+        backgroundHeight_ - 1,
+        radius,
+        true,
+        borderColor,
+        bgColor,
+        &painter);
+  } else {
+    const int x = isLeft()
+        ? (isFloating() ? floatingMargin_ : 0)
+        : (isFloating()
+            ? maxWidth_ - backgroundWidth_ - floatingMargin_
+            : maxWidth_ - backgroundWidth_);
+
+    const int radius = backgroundWidth_ / 4;
+
     fillRoundedRect(
-          x, (maxHeight_ - backgroundHeight_) / 2, backgroundWidth_ - 1, backgroundHeight_ - 1,
-          r, showBorder, borderColor, bgColor, &painter);
+        x,
+        (maxHeight_ - backgroundHeight_) / 2,
+        backgroundWidth_ - 1,
+        backgroundHeight_ - 1,
+        radius,
+        true,
+        borderColor,
+        bgColor,
+        &painter);
   }
 
-  // Draw the items from the end to avoid zoomed items getting clipped by
-  // non-zoomed items.
+  painter.restore();
+
+  // Draw icons after the glass background.
   for (int i = itemCount() - 1; i >= 0; --i) {
     items_[i]->draw(&painter);
   }
@@ -730,10 +756,98 @@ void DockPanel::mouseMoveEvent(QMouseEvent* e) {
   const auto x = e->position().x();
   const auto y = e->position().y();
 
+  const bool leftDown = e->buttons() & Qt::LeftButton;
+
+  if (launcherPressActive_ &&
+      leftDown &&
+      pressedItem_ >= 0 &&
+      pressedItem_ < static_cast<int>(items_.size())) {
+
+    const QPoint currentPos = e->position().toPoint();
+
+    if (!launcherDragging_ &&
+        (currentPos - launcherPressPos_).manhattanLength() >=
+            QApplication::startDragDistance()) {
+
+      Program* program =
+          dynamic_cast<Program*>(items_[pressedItem_].get());
+
+      if (program && program->pinned()) {
+        launcherDragging_ = true;
+        launcherDragOrder_ = model_->launchers(dockId_);
+        setCursor(Qt::ClosedHandCursor);
+      }
+    }
+
+    if (launcherDragging_) {
+      // Find the pinned launcher currently under/nearest the pointer.
+      int targetItem = -1;
+      int bestDistance = std::numeric_limits<int>::max();
+
+      for (int i = 0; i < static_cast<int>(items_.size()); ++i) {
+        Program* candidate =
+            dynamic_cast<Program*>(items_[i].get());
+
+        if (!candidate || !candidate->pinned()) {
+          continue;
+        }
+
+        const int center = isHorizontal()
+            ? items_[i]->left_ + items_[i]->getWidth() / 2
+            : items_[i]->top_ + items_[i]->getHeight() / 2;
+
+        const int pointer = isHorizontal() ? x : y;
+        const int distance = std::abs(pointer - center);
+
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          targetItem = i;
+        }
+      }
+
+      if (targetItem >= 0 && targetItem != pressedItem_) {
+        Program* dragged =
+            dynamic_cast<Program*>(items_[pressedItem_].get());
+
+        Program* target =
+            dynamic_cast<Program*>(items_[targetItem].get());
+
+        if (dragged && target &&
+            dragged->pinned() && target->pinned()) {
+
+          const QString draggedId = dragged->getAppId();
+          const QString targetId = target->getAppId();
+
+          const int fromLauncher =
+              launcherDragOrder_.indexOf(draggedId);
+          const int toLauncher =
+              launcherDragOrder_.indexOf(targetId);
+
+          if (fromLauncher >= 0 &&
+              toLauncher >= 0 &&
+              fromLauncher != toLauncher) {
+
+            launcherDragOrder_.move(fromLauncher, toLauncher);
+
+            // Move the actual dock item without rebuilding the dock.
+            auto moving = std::move(items_[pressedItem_]);
+            items_.erase(items_.begin() + pressedItem_);
+            items_.insert(items_.begin() + targetItem,
+                          std::move(moving));
+
+            pressedItem_ = targetItem;
+
+            updateLayout(x, y);
+            update();
+          }
+        }
+      }
+
+      return;
+    }
+  }
+
   if (isEntering_) {
-    // Don't do the parabolic zooming if the mouse is outside the minimized area.
-    // Also don't do the parabolic zooming if the mouse is near the border.
-    // Quite often the user was just scrolling a window etc.
     if (!checkMouseEnter(x, y)) {
       return;
     }
@@ -878,9 +992,59 @@ void DockPanel::mousePressEvent(QMouseEvent* e) {
     return;
   }
 
-  if (activeItem_ >= 0 && activeItem_ < static_cast<int>(items_.size())) {
-    items_[activeItem_]->maybeResetActiveWindow(e);
-    items_[activeItem_]->mousePressEvent(e);
+  if (activeItem_ < 0 ||
+      activeItem_ >= static_cast<int>(items_.size())) {
+    return;
+  }
+
+  // A pinned Program can be dragged to rearrange the launcher list.
+  if (e->button() == Qt::LeftButton) {
+    Program* program =
+        dynamic_cast<Program*>(items_[activeItem_].get());
+
+    if (program && program->pinned()) {
+      launcherPressActive_ = true;
+      launcherDragging_ = false;
+      pressedItem_ = activeItem_;
+      launcherPressPos_ = e->position().toPoint();
+      launcherDragOrder_.clear();
+      return;
+    }
+  }
+
+  items_[activeItem_]->maybeResetActiveWindow(e);
+  items_[activeItem_]->mousePressEvent(e);
+}
+
+void DockPanel::mouseReleaseEvent(QMouseEvent* e) {
+  if (!launcherPressActive_) {
+    return;
+  }
+
+  const int releasedItem = pressedItem_;
+  const bool wasDragging = launcherDragging_;
+
+  launcherPressActive_ = false;
+  launcherDragging_ = false;
+  pressedItem_ = -1;
+  unsetCursor();
+
+  if (wasDragging) {
+    if (!launcherDragOrder_.isEmpty()) {
+      model_->setLaunchers(dockId_, launcherDragOrder_);
+    }
+
+    launcherDragOrder_.clear();
+    return;
+  }
+
+  launcherDragOrder_.clear();
+
+  // It was a normal click, not a drag.
+  if (releasedItem >= 0 &&
+      releasedItem < static_cast<int>(items_.size())) {
+    items_[releasedItem]->maybeResetActiveWindow(e);
+    items_[releasedItem]->mousePressEvent(e);
   }
 }
 
@@ -945,6 +1109,7 @@ void DockPanel::initUi() {
   initPager();
   initLaunchers();
   initTasks();
+  initFolderStack();
   initTrash();
   initWifiManager();
   initVolumeControl();
@@ -1227,7 +1392,12 @@ void DockPanel::initLaunchers() {
           this, model_, orientation_, minSize_, maxSize_,
           launcherConfig.appId == kLauncherSeparatorId));
     } else {
-      QPixmap icon = loadIcon(launcherConfig.icon, kIconLoadSize);
+      QString dockIcon = model_->customLauncherIcon(launcherConfig.appId);
+      if (dockIcon.isEmpty()) {
+        dockIcon = launcherConfig.icon;
+      }
+
+      QPixmap icon = loadIcon(dockIcon, kIconLoadSize);
       items_.push_back(std::make_unique<Program>(
           this, model_, launcherConfig.appId, launcherConfig.name, orientation_,
           icon, minSize_, maxSize_, launcherConfig.command,
@@ -1266,6 +1436,7 @@ void DockPanel::reloadTasks() {
   items_.resize(itemsToKeep);
   initLaunchers();
   initTasks();
+  initFolderStack();
   initTrash();
   initWifiManager();
   initVolumeControl();
@@ -1358,6 +1529,9 @@ bool DockPanel::isValidTask(const WindowInfo* task) {
     return false;
   }
 
+  if (QString::fromStdString(task->appId).contains("Unity", Qt::CaseInsensitive)) {
+}
+
   if (task->skipTaskbar) {
     return false;
   }
@@ -1416,6 +1590,12 @@ bool DockPanel::hasTask(void* window) {
     }
   }
   return false;
+}
+
+void DockPanel::initFolderStack() {
+
+  items_.push_back(std::make_unique<FolderStack>(
+      this, model_, orientation_, minSize_, maxSize_));
 }
 
 void DockPanel::initTrash() {

@@ -267,6 +267,7 @@ class DockPanel : public QWidget {
   virtual void paintEvent(QPaintEvent* e) override;
   virtual void mouseMoveEvent(QMouseEvent* e) override;
   virtual void mousePressEvent(QMouseEvent* e) override;
+  virtual void mouseReleaseEvent(QMouseEvent* e) override;
   virtual void wheelEvent(QWheelEvent* e) override;
   virtual void enterEvent(QEnterEvent* e) override;
   virtual void leaveEvent(QEvent* e) override;
@@ -330,6 +331,7 @@ class DockPanel : public QWidget {
   bool shouldConsiderTaskForIntellihide(const WindowInfo* task);
   bool hasTask(void* window);
 
+  void initFolderStack();
   void initTrash();
   void initWifiManager();
   void initVolumeControl();
@@ -440,6 +442,13 @@ class DockPanel : public QWidget {
   // The list of all dock items.
   std::vector<std::unique_ptr<DockItem>> items_;
   int activeItem_ = -1;
+
+  // Macaque Dock launcher rearranging.
+  bool launcherPressActive_ = false;
+  bool launcherDragging_ = false;
+  int pressedItem_ = -1;
+  QPoint launcherPressPos_;
+  QStringList launcherDragOrder_;
 
   // Context (right-click) menu.
   QMenu menu_;

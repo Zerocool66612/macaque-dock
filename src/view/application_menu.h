@@ -24,6 +24,12 @@
 #include <QEvent>
 #include <QFont>
 #include <QLineEdit>
+#include <QDialog>
+#include <QGridLayout>
+#include <QScrollArea>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QPushButton>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPoint>
@@ -99,6 +105,11 @@ class ApplicationMenu : public QObject, public IconBasedDockItem {
 
   void createContextMenu();
 
+  // MacaqueOS Launchpad.
+  void showLaunchpad();
+  void rebuildLaunchpad(const QString& filter = QString());
+  void addLaunchpadEntry(const ApplicationEntry& entry, int& row, int& column);
+
   // The cascading popup menu that contains all application entries.
   QMenu menu_;
   bool showingMenu_;
@@ -119,6 +130,12 @@ class ApplicationMenu : public QObject, public IconBasedDockItem {
 
   // Context (right-click) menu.
   QMenu contextMenu_;
+
+  // MacaqueOS Launchpad.
+  QDialog* launchpad_ = nullptr;
+  QLineEdit* launchpadSearch_ = nullptr;
+  QWidget* launchpadGridWidget_ = nullptr;
+  QGridLayout* launchpadGrid_ = nullptr;
 };
 
 }  // namespace crystaldock

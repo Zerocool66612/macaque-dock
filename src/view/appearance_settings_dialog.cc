@@ -18,8 +18,19 @@
 
 #include "appearance_settings_dialog.h"
 #include "ui_appearance_settings_dialog.h"
+#include "utils/icon_utils.h"
 
 #include <utils/math_utils.h>
+
+#include <QFileDialog>
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QScrollArea>
+#include <QVBoxLayout>
+
 
 namespace crystaldock {
 
@@ -41,6 +52,160 @@ AppearanceSettingsDialog::AppearanceSettingsDialog(QWidget* parent,
   activeIndicatorColor_->setGeometry(QRect(260, 270, 80, 40));
   inactiveIndicatorColor_ = new ColorButton(this);
   inactiveIndicatorColor_->setGeometry(QRect(700, 270, 80, 40));
+
+  auto* iconsButton = new QPushButton(
+      QIcon::fromTheme("preferences-desktop-icons"),
+      QString("Icons..."),
+      this);
+  iconsButton->setGeometry(QRect(600, 450, 180, 36));
+  iconsButton->setToolTip(QString("Manage Macaque Dock launcher icons"));
+
+  connect(iconsButton, &QPushButton::clicked, this, [this] {
+    QDialog dialog(this);
+    dialog.setWindowTitle(QString("Macaque Dock Icons"));
+    dialog.resize(620, 520);
+
+    auto* mainLayout = new QVBoxLayout(&dialog);
+
+    auto* title = new QLabel(
+        QString("<b>Launcher Icons</b><br>"
+                "Macaque Dock follows your KDE system icon theme unless "
+                "you choose a custom icon for an application."));
+    title->setWordWrap(true);
+    mainLayout->addWidget(title);
+
+    auto* systemInfo = new QLabel(
+        QString("System icon theme: <b>%1</b>")
+            .arg(QIcon::themeName().isEmpty()
+                     ? QString("System default")
+                     : QIcon::themeName()));
+    mainLayout->addWidget(systemInfo);
+
+    auto* scroll = new QScrollArea;
+    scroll->setWidgetResizable(true);
+
+    auto* contents = new QWidget;
+    auto* launcherLayout = new QVBoxLayout(contents);
+
+    // Avoid duplicate applications when multiple docks contain
+    // the same pinned launcher.
+    QSet<QString> addedApps;
+
+    for (int dockId = 1; dockId <= model_->dockCount(); ++dockId) {
+      for (const auto& launcher : model_->launcherConfigs(dockId)) {
+        if (launcher.appId.isEmpty() ||
+            launcher.appId == kSeparatorId ||
+            launcher.appId == kLauncherSeparatorId ||
+            addedApps.contains(launcher.appId)) {
+          continue;
+        }
+
+        addedApps.insert(launcher.appId);
+
+        auto* row = new QWidget;
+        auto* rowLayout = new QHBoxLayout(row);
+        rowLayout->setContentsMargins(4, 4, 4, 4);
+
+        QString iconName = model_->customLauncherIcon(launcher.appId);
+        if (iconName.isEmpty()) {
+          iconName = launcher.icon;
+        }
+
+        auto* iconLabel = new QLabel;
+        QPixmap pixmap = loadIcon(iconName, 48);
+        iconLabel->setPixmap(
+            pixmap.scaled(48, 48,
+                          Qt::KeepAspectRatio,
+                          Qt::SmoothTransformation));
+        iconLabel->setFixedSize(52, 52);
+        rowLayout->addWidget(iconLabel);
+
+        auto* name = new QLabel(
+            launcher.name.isEmpty() ? launcher.appId : launcher.name);
+        name->setMinimumWidth(180);
+        rowLayout->addWidget(name, 1);
+
+        auto* change = new QPushButton(QString("Change..."));
+        auto* system = new QPushButton(QString("System Icon"));
+
+        rowLayout->addWidget(change);
+        rowLayout->addWidget(system);
+
+        const QString appId = launcher.appId;
+        const QString systemIcon = launcher.icon;
+
+        connect(change, &QPushButton::clicked, &dialog,
+                [this, appId, iconLabel] {
+          const QString file = QFileDialog::getOpenFileName(
+              this,
+              QString("Choose Dock Icon"),
+              QDir::homePath(),
+              QString("Images (*.png *.svg *.svgz *.xpm *.jpg *.jpeg *.webp);;"
+                      "All Files (*)"));
+
+          if (!file.isEmpty()) {
+            model_->setCustomLauncherIcon(appId, file);
+
+            QPixmap pixmap = loadIcon(file, 48);
+            iconLabel->setPixmap(
+                pixmap.scaled(48, 48,
+                              Qt::KeepAspectRatio,
+                              Qt::SmoothTransformation));
+          }
+        });
+
+        connect(system, &QPushButton::clicked, &dialog,
+                [this, appId, systemIcon, iconLabel] {
+          model_->setCustomLauncherIcon(appId, QString());
+
+          QPixmap pixmap = loadIcon(systemIcon, 48);
+          iconLabel->setPixmap(
+              pixmap.scaled(48, 48,
+                            Qt::KeepAspectRatio,
+                            Qt::SmoothTransformation));
+        });
+
+        launcherLayout->addWidget(row);
+      }
+    }
+
+    launcherLayout->addStretch();
+    scroll->setWidget(contents);
+    mainLayout->addWidget(scroll, 1);
+
+    auto* bottom = new QHBoxLayout;
+
+    auto* resetAll = new QPushButton(
+        QIcon::fromTheme("edit-undo"),
+        QString("Reset All Custom Icons"));
+
+    auto* close = new QPushButton(QString("Close"));
+
+    bottom->addWidget(resetAll);
+    bottom->addStretch();
+    bottom->addWidget(close);
+
+    mainLayout->addLayout(bottom);
+
+    connect(resetAll, &QPushButton::clicked, &dialog, [this, &dialog] {
+      const auto answer = QMessageBox::question(
+          &dialog,
+          QString("Reset Custom Icons"),
+          QString("Return all launcher icons to the KDE system icon theme?"));
+
+      if (answer == QMessageBox::Yes) {
+        model_->resetCustomLauncherIcons();
+        dialog.accept();
+      }
+    });
+
+    connect(close, &QPushButton::clicked, &dialog, &QDialog::accept);
+
+    dialog.exec();
+
+    // Force all docks to rebuild their launcher icons.
+    model_->saveAppearanceConfig();
+  });
 
   connect(ui->buttonBox, SIGNAL(clicked(QAbstractButton*)),
       this, SLOT(buttonClicked(QAbstractButton*)));

@@ -190,14 +190,16 @@ const std::vector<LauncherConfig> MultiDockModel::launcherConfigs(int dockId) co
 }
 
 QStringList MultiDockModel::defaultLaunchers() {
-  QStringList launchers;
-  const auto desktopEnvItems = desktopEnv_->getDefaultLaunchers();
-  launchers.reserve(desktopEnvItems.size());
-  for (const auto& appId : desktopEnvItems) {
-    launchers.append(appId);
-  }
-
-  return launchers;
+  // MacaqueOS factory launcher layout.
+  return QStringList{
+      "org.kde.dolphin",
+      "firefox_firefox",
+      "show-desktop",
+      "separator",
+      "org.kde.konsole",
+      "systemsettings",
+      "separator"
+  };
 }
 
 }  // namespace crystaldock

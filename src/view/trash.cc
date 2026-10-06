@@ -59,6 +59,7 @@ Trash::Trash(DockPanel* parent, MultiDockModel* model, Qt::Orientation orientati
 }
 
 void Trash::draw(QPainter* painter) const {
+
   IconBasedDockItem::draw(painter);
   
   if (acceptingDrop_) {

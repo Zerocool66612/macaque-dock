@@ -1,0 +1,13 @@
+Package: macaque-dock-dbgsym
+Package-Type: ddeb
+Source: macaque-dock
+Version: 1.0.0-1
+Auto-Built-Package: debug-symbols
+Architecture: amd64
+Maintainer: Drew Owen <noreply@github.com>
+Installed-Size: 8583
+Depends: macaque-dock (= 1.0.0-1)
+Section: debug
+Priority: optional
+Description: debug symbols for macaque-dock
+Build-Ids: 3553c9dcda7de07b70534e783da5a51ef8d6fed2

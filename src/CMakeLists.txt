@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(crystal-dock)
+project(macaque-dock)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,6 +21,7 @@ if (Qt6_VERSION VERSION_GREATER_EQUAL 6.9.0)
 endif()
 find_package(Wayland 1.22 REQUIRED COMPONENTS Client)
 find_package(LayerShellQt 6.0 REQUIRED)
+find_package(KF6WindowSystem REQUIRED)
 
 set(SRCS
     desktop/desktop_env.cc
@@ -58,6 +59,7 @@ set(SRCS
     view/dock_panel.cc
     view/edit_keyboard_layouts_dialog.cc
     view/edit_launchers_dialog.cc
+  view/folder_stack.cc
     view/icon_based_dock_item.cc
     view/icon_button.cc
     view/iconless_dock_item.cc
@@ -106,6 +108,7 @@ set(SRCS
     view/color_button.h
     view/desktop_selector.h
     view/dock_item.h
+  view/folder_stack.h
     view/dock_panel.h
     view/edit_keyboard_layouts_dialog.h
     view/edit_launchers_dialog.h
@@ -138,21 +141,21 @@ set(SRCS
     view/task_manager_settings_dialog.ui
     view/wallpaper_settings_dialog.ui
     view/wifi_connection_dialog.ui)
-add_library(crystal-dock_lib STATIC ${SRCS})
+add_library(macaque-dock_lib STATIC ${SRCS})
 
-set(LIBS Qt6::DBus Qt6::GuiPrivate Qt6::Widgets Wayland::Client LayerShellQt::Interface)
-target_link_libraries(crystal-dock_lib ${LIBS})
+set(LIBS Qt6::DBus Qt6::GuiPrivate Qt6::Widgets Wayland::Client LayerShellQt::Interface KF6::WindowSystem)
+target_link_libraries(macaque-dock_lib ${LIBS})
 
-add_executable(crystal-dock main.cc)
-target_link_libraries(crystal-dock crystal-dock_lib ${LIBS})
+add_executable(macaque-dock main.cc)
+target_link_libraries(macaque-dock macaque-dock_lib ${LIBS})
 
-configure_file(crystal-dock.desktop.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/crystal-dock.desktop @ONLY)
+configure_file(macaque-dock.desktop.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/macaque-dock.desktop @ONLY)
 
 # Install
 
-install(TARGETS crystal-dock RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/crystal-dock.desktop
+install(TARGETS macaque-dock RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/macaque-dock.desktop
     DESTINATION ${CMAKE_INSTALL_PREFIX}/share/applications)
 
 # Uninstall
@@ -170,5 +173,5 @@ add_custom_target(uninstall COMMAND ${CMAKE_COMMAND}
 enable_testing()
 
 add_executable(application_menu_config_test model/application_menu_config_test.cc)
-target_link_libraries(application_menu_config_test Qt6::Test crystal-dock_lib ${LIBS})
+target_link_libraries(application_menu_config_test Qt6::Test macaque-dock_lib ${LIBS})
 add_test(application_menu_config_test application_menu_config_test)
