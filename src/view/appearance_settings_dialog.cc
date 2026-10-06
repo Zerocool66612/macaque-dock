@@ -212,6 +212,16 @@ AppearanceSettingsDialog::AppearanceSettingsDialog(QWidget* parent,
   connect(ui->enableZooming, &QCheckBox::checkStateChanged,
           this, &AppearanceSettingsDialog::onEnableZoomingChanged);
 
+  connect(ui->fullScreenApplicationLauncher,
+          &QCheckBox::checkStateChanged,
+          this,
+          [this](Qt::CheckState state) {
+            const bool enabled = state == Qt::Checked;
+            model_->setFullScreenApplicationLauncher(enabled);
+            model_->saveAppearanceConfig();
+            qDebug() << "[MACAQUE FULLSCREEN] changed =" << enabled;
+          });
+
   loadData();
 }
 
@@ -220,8 +230,8 @@ AppearanceSettingsDialog::~AppearanceSettingsDialog() {
 }
 
 void AppearanceSettingsDialog::accept() {
-  QDialog::accept();
   saveData();
+  QDialog::accept();
 }
 
 void AppearanceSettingsDialog::buttonClicked(QAbstractButton* button) {
@@ -277,6 +287,7 @@ void AppearanceSettingsDialog::loadData() {
   ui->floatingMargin->setValue(model_->floatingMargin());
   ui->floatingMargin->setEnabled(model_->isFloating());
   ui->bouncingLauncherIcon->setChecked(model_->bouncingLauncherIcon());
+  ui->fullScreenApplicationLauncher->setChecked(model_->fullScreenApplicationLauncher());
 }
 
 void AppearanceSettingsDialog::resetData() {
@@ -308,6 +319,7 @@ void AppearanceSettingsDialog::resetData() {
   ui->tooltipFontSize->setValue(kDefaultTooltipFontSize);
   ui->floatingMargin->setValue(kDefaultFloatingMargin);
   ui->bouncingLauncherIcon->setChecked(kDefaultBouncingLauncherIcon);
+  ui->fullScreenApplicationLauncher->setChecked(false);
 }
 
 void AppearanceSettingsDialog::saveData() {
@@ -344,6 +356,12 @@ void AppearanceSettingsDialog::saveData() {
   model_->setTooltipFontSize(ui->tooltipFontSize->value());
   model_->setFloatingMargin(ui->floatingMargin->value());
   model_->setBouncingLauncherIcon(ui->bouncingLauncherIcon->isChecked());
+  const bool fullScreenLauncher =
+      ui->fullScreenApplicationLauncher->isChecked();
+
+  qDebug() << "[MACAQUE FULLSCREEN] saving =" << fullScreenLauncher;
+
+  model_->setFullScreenApplicationLauncher(fullScreenLauncher);
   model_->saveAppearanceConfig();
 }
 

@@ -169,6 +169,17 @@ void ApplicationMenu::searchApps(const QString& searchText_) {
 }
 
 bool ApplicationMenu::eventFilter(QObject* object, QEvent* event) {
+  // Launchpad is intentionally a normal frameless dialog instead of Qt::Popup
+  // because Qt::Popup causes positioning problems on Wayland. Close it when
+  // it loses activation, which gives us click-outside-to-close behavior.
+  if (object == launchpad_ && event->type() == QEvent::WindowDeactivate) {
+    launchpad_->hide();
+    showingMenu_ = false;
+    parent_->setShowingPopup(false);
+    parent_->update();
+    return false;
+  }
+
   if (event->type() == QEvent::MouseButtonPress) {
     auto* activeItem = (dynamic_cast<QMenu*>(object))->activeAction();
     QMouseEvent* mouseEvent = dynamic_cast<QMouseEvent*>(event);
@@ -331,6 +342,9 @@ void ApplicationMenu::showLaunchpad() {
 
     launchpad_->setAttribute(Qt::WA_TranslucentBackground);
 
+    // Close Launchpad when the user clicks away from it.
+    launchpad_->installEventFilter(this);
+
     // Esc closes Launchpad while keeping it as a normal centered dialog.
     auto* closeShortcut =
         new QShortcut(QKeySequence(Qt::Key_Escape), launchpad_);
@@ -481,15 +495,19 @@ void ApplicationMenu::showLaunchpad() {
 
   launchpad_->show();
 
-  // Re-center after the Wayland window has actually been created.
-  // This prevents KWin/Wayland from shifting the dialog after our first move.
+  // Re-apply geometry after Wayland creates the window.
+  // Fullscreen mode fills the entire screen. Windowed mode is re-centered.
   if (QScreen* finalScreen = parent_->screen()) {
-    const QRect area = finalScreen->availableGeometry();
-    const QSize size = launchpad_->size();
+    if (model_->fullScreenApplicationLauncher()) {
+      launchpad_->setGeometry(finalScreen->geometry());
+    } else {
+      const QRect area = finalScreen->availableGeometry();
+      const QSize size = launchpad_->size();
 
-    launchpad_->move(
-        area.x() + (area.width() - size.width()) / 2,
-        area.y() + (area.height() - size.height()) / 2);
+      launchpad_->move(
+          area.x() + (area.width() - size.width()) / 2,
+          area.y() + (area.height() - size.height()) / 2);
+    }
   }
 
   // Ask KWin to blur everything behind the translucent Launchpad.
@@ -546,7 +564,10 @@ void ApplicationMenu::addLaunchpadEntry(
     int& row,
     int& column) {
 
-  constexpr int kColumns = 7;
+  // Windowed Launchpad keeps the original 7-column layout.
+  // Fullscreen uses the extra monitor space for a larger app grid.
+  const int kColumns =
+      model_->fullScreenApplicationLauncher() ? 10 : 7;
 
   // Each application gets its own tile. The icon and text are separate
   // widgets so Qt cannot crop the icon while trying to fit the label.
