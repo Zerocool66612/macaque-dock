@@ -1,90 +1,78 @@
-![Crystal Dock](https://github.com/dangvd/crystal-dock/raw/main/images/crystal-dock.jpg)
+# 🐒 Macaque Dock
 
-# Crystal Dock
+**Macaque Dock** is a macOS-inspired application dock for **KDE Plasma 6** and **Wayland**.
 
-[Releases](https://github.com/dangvd/crystal-dock/releases)
-[Documentation](https://github.com/dangvd/crystal-dock/wiki/Documentation)
-[FAQ & Troubleshooting](https://github.com/dangvd/crystal-dock/wiki/FAQ-&-Troubleshooting)
-[Author & Contributors](https://github.com/dangvd/crystal-dock/wiki/Author-&-Contributors)
+Macaque Dock started from the open-source Crystal Dock codebase and has since received substantial updates, new features, interface changes, and MacaqueOS-specific improvements.
 
-Crystal Dock is a cool dock (desktop panel) for Linux desktop, with the focus on attractive user interface, simplicity and cross-desktop support.
+## What's New in Macaque Dock
 
-The current version (version 2) supports Budgie, Hyprland, KDE Plasma 6, Labwc, LXQt, Niri, Sway and Wayfire on Wayland. Other desktop environments and compositors will be considered when they run on Wayland and provide sufficient APIs. The previous version (version 1) supports KDE Plasma 5, GNOME, LXQt, Cinnamon and MATE on X11.
+Macaque Dock is more than a branding change. Several major features and improvements have been added.
 
-## Main features
+- Launchpad-style application launcher
+- macOS-inspired dock appearance
+- Drag-and-drop pinned application reordering
+- Custom launcher icons
+- Built-in icon manager
+- Downloads folder stack
+- KDE system folder and file icons
+- Image previews in folder stacks
+- Folder item-count indicator
+- Improved folder-stack layout and animations
+- Configurable dock colors and transparency
+- KWin blur integration
+- KDE Plasma 6 and Wayland improvements
+- MacaqueOS integration
+- Debian/Ubuntu package support
+- Numerous UI and usability improvements
 
-- Smooth parabolic zooming and translucent effect
-- Four visual styles: Glass 3D, Glass 2D, Flat 2D and Metal 2D with various appearance settings
-- Supported components: Application Menu (Application Launcher), Launcher/Task Manager, Trash, Wi-Fi Manager, Volume Control, Battery Indicator, Keyboard Layout, Version Checker, Clock and (on some environments) Pager
-- Multiple docks support
-- Integration with various desktop environments / compositors: specific default launchers, special menu entries (e.g. Log Out)
-- Separate configs for separate desktop environments / compositors
+## Download
 
-## Icon theme
+Download the latest Macaque Dock release:
 
-Crystal Dock simply uses the system icon theme.
-The one shown in the screenshots is Crystal Remix icon theme: https://github.com/dangvd/crystal-remix-icon-theme
+https://github.com/Zerocool66612/macaque-dock/releases
+
+## Install
+
+For compatible Debian/Ubuntu-based systems:
+
+    sudo apt install ./macaque-dock_1.0.0-1_amd64.deb
+
+## Build From Source
+
+Clone Macaque Dock:
+
+    git clone https://github.com/Zerocool66612/macaque-dock.git
+    cd macaque-dock
+
+Configure and build:
+
+    cmake -S src -B build -DCMAKE_INSTALL_PREFIX=/usr
+    cmake --build build --parallel
+
+Install:
+
+    sudo cmake --install build
+
+## MacaqueOS
+
+Macaque Dock is being developed as part of the **MacaqueOS** desktop project.
+
+It can also be installed separately on compatible KDE Plasma 6 systems.
+
+## Credits and Upstream
+
+Macaque Dock is derived from the open-source **Crystal Dock** project:
+
+https://github.com/dangvd/crystal-dock
+
+We thank the original Crystal Dock developers and contributors. Applicable original copyright and licensing notices are retained in the source code.
 
 ## License
 
-Crystal Dock is licensed under the GNU General Public License v3.0
+Macaque Dock is free and open-source software distributed under the **GNU General Public License v3 or later**.
 
-## Dependencies
-
-Crystal Dock is written in C++ and depends on:
-- Qt6 as the GUI framework
-- LayerShellQt6 for Wayland's Layer Shell integration
+See the repository license and individual source-file notices for complete licensing information.
 
 ---
 
-## Build from the source code
-
-### Build dependencies
-
-Dependencies development packages: to build from the source code, Qt6, LayerShellQt6 and Wayland development packages are required.
-
-For example, to install them on OpenSUSE, run:
-
-```
-$ sudo zypper install qt6-base-private-devel wayland-devel layer-shell-qt6-devel
-```
-
-To install them on Fedora, run:
-
-```
-$ sudo dnf install qt6-qtbase-private-devel wayland-devel layer-shell-qt-devel
-```
-
-To install them on Ubuntu, run:
-
-```
-$ sudo apt install qt6-base-private-dev libwayland-dev liblayershellqtinterface-dev
-```
-
-### Build commands
-
-To build and install, run:
-
-```
-$ cmake -S src -B build -DCMAKE_INSTALL_PREFIX=/usr
-$ cmake --build build --parallel
-$ sudo cmake --install build
-```
-
-After the installation, Crystal Dock can be launched from the Application list (Utilities category), or from the command line:
-```
-$ crystal-dock
-```
-
-Note that on KWin, Crystal Dock needs to be installed in order to be able to access necessary KDE Wayland protocols.
-
-To uninstall, navigate to the cloned repository and run:
-
-```
-$ sudo cmake --build build --target uninstall
-```
-
-To execute the automated tests, run:
-```
-$ ctest --test-dir build
-```
+**Macaque Dock 1.0.0**

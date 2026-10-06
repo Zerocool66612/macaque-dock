@@ -76,8 +76,8 @@ DockPanel::DockPanel(MultiDockView* parent, MultiDockModel* model, int dockId)
       parent_(parent),
       model_(model),
       dockId_(dockId),
-      aboutDialog_(QMessageBox::Information, "About Crystal Dock",
-                   QString("<h3>Crystal Dock ") + kVersion + "</h3>"
+      aboutDialog_(QMessageBox::Information, "About Macaque Dock",
+                   QString("<h3>Macaque Dock ") + kVersion + "</h3>"
                    + "<p>Copyright (C) 2025 Viet Dang (dangvd@gmail.com)"
                    + "<p><a href=\"https://github.com/dangvd/crystal-dock\">https://github.com/dangvd/crystal-dock</a>"
                    + "<p>License: GPLv3",
@@ -1274,7 +1274,7 @@ void DockPanel::createMenu() {
   helpMenu->addAction(QIcon::fromTheme("help-contents"),
                   QString("Online &Documentation"),
                   this, SLOT(showOnlineDocumentation()));
-  helpMenu->addAction(QIcon::fromTheme("help-about"), QString("A&bout Crystal Dock"), this,
+  helpMenu->addAction(QIcon::fromTheme("help-about"), QString("A&bout Macaque Dock"), this,
       [this] {
         minimize();
         QTimer::singleShot(DockPanel::kExecutionDelayMs, [this]{

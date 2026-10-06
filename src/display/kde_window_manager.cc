@@ -145,7 +145,7 @@ bool KdeWindowManager::showingDesktop_;
 }
 
 /* static */ void KdeWindowManager::setShowingDesktop(bool show) {
-  // This does not work because it would hide Crystal Dock.
+  // This does not work because it would hide Macaque Dock.
   /*
   org_kde_plasma_window_management_show_desktop(
       window_management_,

@@ -42,8 +42,8 @@ MultiDockView::MultiDockView(MultiDockModel* model)
 /* static */ bool MultiDockView::checkPlatformSupported(const QApplication& app) {
   if (QGuiApplication::platformName().toLower() != "wayland") {
     QMessageBox::critical(nullptr, "Unsupported Platform",
-                          "Crystal Dock 2.x only supports Wayland.\n"
-                          "For X11, please use Crystal Dock 1.x");
+                          "Macaque Dock currently supports Wayland.\n"
+                          "X11 is not currently supported by Macaque Dock");
     return false;
   }
 
