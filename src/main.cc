@@ -69,18 +69,15 @@ void maybeCopyPresetConfigOnFirstRun(const QString& configDir) {
 int main(int argc, char** argv) {
   QApplication app(argc, argv);
 
-  // Enforces single instance.
-  QSharedMemory sharedMemory;
-  sharedMemory.setKey("macaque-dock-key");
-  if (!sharedMemory.create(1 /*byte*/)) {
-    // The failure might have been caused by a previous crash.
-    sharedMemory.attach();
-    sharedMemory.detach();
-    // Now try again.
-    if (!sharedMemory.create(1 /*byte*/)) {
-      std::cerr << "Another instance is already running." << std::endl;
-      return -1;
-    }
+  // D-Bus connection used both for single-instance protection
+  // and the Macaque Dock launcher interface.
+  auto sessionBus = QDBusConnection::sessionBus();
+
+  // Only one process may own org.macaque.Dock.
+  // Extra panels are created inside that process with Add Panel.
+  if (!sessionBus.registerService("org.macaque.Dock")) {
+    std::cerr << "Macaque Dock is already running." << std::endl;
+    return 0;
   }
 
   if (!crystaldock::MultiDockView::checkPlatformSupported(app)) {
@@ -98,12 +95,7 @@ int main(int argc, char** argv) {
   crystaldock::MultiDockView view(&model);
 
   // D-Bus endpoint used by KWin's modifier-only Super/Meta shortcut.
-  auto bus = QDBusConnection::sessionBus();
-
-  if (!bus.registerService("org.macaque.Dock")) {
-    std::cerr << "Failed to register Macaque D-Bus service: "
-              << bus.lastError().message().toStdString() << std::endl;
-  }
+  auto& bus = sessionBus;
 
   if (!bus.registerObject(
           "/MacaqueDock",
