@@ -212,16 +212,6 @@ AppearanceSettingsDialog::AppearanceSettingsDialog(QWidget* parent,
   connect(ui->enableZooming, &QCheckBox::checkStateChanged,
           this, &AppearanceSettingsDialog::onEnableZoomingChanged);
 
-  connect(ui->fullScreenApplicationLauncher,
-          &QCheckBox::checkStateChanged,
-          this,
-          [this](Qt::CheckState state) {
-            const bool enabled = state == Qt::Checked;
-            model_->setFullScreenApplicationLauncher(enabled);
-            model_->saveAppearanceConfig();
-            qDebug() << "[MACAQUE FULLSCREEN] changed =" << enabled;
-          });
-
   loadData();
 }
 

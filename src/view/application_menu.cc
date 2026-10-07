@@ -363,7 +363,7 @@ void ApplicationMenu::showLaunchpad() {
     mainLayout->setContentsMargins(40, 32, 40, 32);
     mainLayout->setSpacing(18);
 
-    auto* title = new QLabel("MacaqueOS Applications", launchpad_);
+    auto* title = new QLabel("Applications", launchpad_);
     title->setAlignment(Qt::AlignCenter);
     title->setStyleSheet(
         "font-size: 28px;"
