@@ -156,8 +156,10 @@ configure_file(macaque-dock.desktop.cmake
 # Install
 
 install(TARGETS macaque-dock RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/macaque-dock.desktop
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/share/applications)
+if(NOT DEFINED ENV{FLATPAK_ID})
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/macaque-dock.desktop
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/share/applications)
+endif()
 
 # Uninstall
 

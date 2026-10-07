@@ -180,21 +180,66 @@ class WindowSystem : public QObject {
     }
   }
 
-  static std::vector<const WindowInfo*> windows() { return windowManager_.windows(); }
-  static void* activeWindow() { return windowManager_.activeWindow(); }
+  static std::vector<const WindowInfo*> windows() {
+    if (!windowManager_.windows) {
+      return {};
+    }
+    return windowManager_.windows();
+  }
+
+  static void* activeWindow() {
+    if (!windowManager_.activeWindow) {
+      return nullptr;
+    }
+    return windowManager_.activeWindow();
+  }
+
   // We manually reset active window, usually when the new active window is the dock itself.
   // We don't want to always do this (e.g. handle this in state_change() handler) because
   // otherwise we wouldn't be able to click on an active window's icon to minimize it
   // (the click action would change the active window to be the dock).
-  static void resetActiveWindow() { windowManager_.resetActiveWindow(); }
-  static void activateWindow(void* window) { windowManager_.activateWindow(window); }
-  static void activateOrMinimizeWindow(void* window) {
-    windowManager_.activateOrMinimizeWindow(window);
+  static void resetActiveWindow() {
+    if (windowManager_.resetActiveWindow) {
+      windowManager_.resetActiveWindow();
+    }
   }
-  static void minimizeWindow(void* window) { windowManager_.minimizeWindow(window); }
-  static void closeWindow(void* window) { windowManager_.closeWindow(window); }
-  static bool showingDesktop() { return windowManager_.showingDesktop(); }
-  static void setShowingDesktop(bool show) { windowManager_.setShowingDesktop(show); }
+
+  static void activateWindow(void* window) {
+    if (windowManager_.activateWindow) {
+      windowManager_.activateWindow(window);
+    }
+  }
+
+  static void activateOrMinimizeWindow(void* window) {
+    if (windowManager_.activateOrMinimizeWindow) {
+      windowManager_.activateOrMinimizeWindow(window);
+    }
+  }
+
+  static void minimizeWindow(void* window) {
+    if (windowManager_.minimizeWindow) {
+      windowManager_.minimizeWindow(window);
+    }
+  }
+
+  static void closeWindow(void* window) {
+    if (windowManager_.closeWindow) {
+      windowManager_.closeWindow(window);
+    }
+  }
+
+  static bool showingDesktop() {
+    if (!windowManager_.showingDesktop) {
+      return false;
+    }
+    return windowManager_.showingDesktop();
+  }
+
+  static void setShowingDesktop(bool show) {
+    if (windowManager_.setShowingDesktop) {
+      windowManager_.setShowingDesktop(show);
+    }
+  }
 
   static void setAutoHide(QWidget* widget, Qt::Edge edge, bool on = true) {
     if (hasAutoHideManager()) {

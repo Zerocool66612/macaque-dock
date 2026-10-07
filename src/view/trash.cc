@@ -112,6 +112,19 @@ void Trash::emptyTrash() {
 }
 
 void Trash::openTrash() {
+  const bool runningInFlatpak =
+      qEnvironmentVariableIsSet("FLATPAK_ID") ||
+      QFileInfo::exists("/.flatpak-info");
+
+  if (runningInFlatpak) {
+    QProcess::startDetached(
+        QStringLiteral("flatpak-spawn"),
+        {QStringLiteral("--host"),
+         QStringLiteral("dolphin"),
+         QStringLiteral("trash:/")});
+    return;
+  }
+
   QProcess* process = new QProcess(parent_);
   connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
           [this, process](int exitCode, QProcess::ExitStatus exitStatus) {

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 
+#include <QFileInfo>
 #include <QDBusReply>
 #include <QGuiApplication>
 
@@ -57,8 +58,19 @@ std::unique_ptr<QDBusInterface> WindowSystem::activityManager_;
   wl_display_roundtrip(display);
 
   if (!kde_window_management_ && !wlr_window_manager_) {
-    std::cerr << "Failed to bind required Wayland interfaces" << std::endl;
-    return false;
+    const bool runningInFlatpak =
+        qEnvironmentVariableIsSet("FLATPAK_ID") ||
+        QFileInfo::exists("/.flatpak-info");
+
+    if (runningInFlatpak) {
+      std::cerr
+          << "Flatpak: window-management protocol unavailable; "
+             "continuing without task-manager integration."
+          << std::endl;
+    } else {
+      std::cerr << "Failed to bind required Wayland interfaces" << std::endl;
+      return false;
+    }
   }
 
   if (kde_virtual_desktop_management_) {
