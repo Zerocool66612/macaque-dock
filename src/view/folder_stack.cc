@@ -31,17 +31,23 @@ FolderStack::FolderStack(DockPanel* parent,
                          MultiDockModel* model,
                          Qt::Orientation orientation,
                          int minSize,
-                         int maxSize)
+                         int maxSize,
+                         const QString& stackId,
+                         const QString& initialLabel,
+                         QStandardPaths::StandardLocation initialLocation)
     : IconBasedDockItem(parent,
                         model,
-                        "Downloads",
+                        initialLabel,
                         orientation,
-                        "folder-download",
+                        initialLocation == QStandardPaths::DownloadLocation
+                            ? "folder-download"
+                            : "folder",
                         minSize,
                         maxSize),
+      stackId_(stackId),
       folderPath_(
-          QStandardPaths::writableLocation(
-              QStandardPaths::DownloadLocation)) {
+          QStandardPaths::writableLocation(initialLocation)),
+      folderLabel_(initialLabel) {
 
   if (folderPath_.isEmpty()) {
     folderPath_ = QDir::homePath() + "/Downloads";
@@ -57,12 +63,12 @@ FolderStack::FolderStack(DockPanel* parent,
 
     sortByNewest_ =
         settings.value(
-            "Downloads/sortByNewest",
+            stackId_ + "/sortByNewest",
             true).toBool();
 
     maximumItems_ =
         settings.value(
-            "Downloads/maximumItems",
+            stackId_ + "/maximumItems",
             8).toInt();
 
     if (maximumItems_ != 5 &&
@@ -73,13 +79,13 @@ FolderStack::FolderStack(DockPanel* parent,
 
     const QString selectedFolder =
         settings.value(
-            "Downloads/folder",
-            "Downloads").toString();
+            stackId_ + "/folder",
+            initialLabel).toString();
 
     if (selectedFolder == "Custom") {
       const QString customPath =
           settings.value(
-              "Downloads/customFolderPath",
+              stackId_ + "/customFolderPath",
               "").toString();
 
       if (!customPath.isEmpty() &&
@@ -699,11 +705,11 @@ void FolderStack::rebuildContextMenu() {
             QSettings::IniFormat);
 
         settings.setValue(
-            "Downloads/folder",
+            stackId_ + "/folder",
             "Custom");
 
         settings.setValue(
-            "Downloads/customFolderPath",
+            stackId_ + "/customFolderPath",
             folderPath_);
 
         settings.sync();
@@ -731,7 +737,7 @@ void FolderStack::rebuildContextMenu() {
               QSettings::IniFormat);
 
           settings.setValue(
-              "Downloads/sortByNewest",
+              stackId_ + "/sortByNewest",
               true);
           settings.sync();
           });
@@ -754,7 +760,7 @@ void FolderStack::rebuildContextMenu() {
               QSettings::IniFormat);
 
           settings.setValue(
-              "Downloads/sortByNewest",
+              stackId_ + "/sortByNewest",
               false);
           settings.sync();
           });
@@ -785,10 +791,36 @@ void FolderStack::rebuildContextMenu() {
                 QSettings::IniFormat);
 
             settings.setValue(
-                "Downloads/maximumItems",
+                stackId_ + "/maximumItems",
                 amount);
             settings.sync();
             });
+  }
+
+  // Downloads is the permanent default stack.
+  if (stackId_ != "Downloads") {
+    contextMenu_.addSeparator();
+
+    QAction* remove =
+        contextMenu_.addAction(
+            QIcon::fromTheme("list-remove"),
+            "Remove Folder from Dock");
+
+    connect(
+        remove,
+        &QAction::triggered,
+        this,
+        [this]() {
+          const QString id = stackId_;
+          hideFanPopup();
+
+          QTimer::singleShot(
+              0,
+              parent_,
+              [parent = parent_, id]() {
+                parent->removeFolderStack(id);
+              });
+        });
   }
 }
 
@@ -812,7 +844,7 @@ void FolderStack::setFolder(
       QSettings::IniFormat);
 
   settings.setValue(
-      "Downloads/folder",
+      stackId_ + "/folder",
       folderLabel_);
 
   settings.sync();

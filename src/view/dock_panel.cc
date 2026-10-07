@@ -17,6 +17,9 @@
  */
 
 #include "dock_panel.h"
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QSettings>
 
 #include <algorithm>
 #include <cmath>
@@ -1175,6 +1178,74 @@ void DockPanel::createMenu() {
       this, SLOT(cloneDock()));
   panelMenu->addAction(QIcon::fromTheme("edit-delete"), QString("&Remove Panel"),
       this, SLOT(removeDock()));
+
+  panelMenu->addSeparator();
+
+  panelMenu->addAction(
+      QIcon::fromTheme("folder-new"),
+      QString("Add Folder to Dock..."),
+      this,
+      [this]() {
+        const QString path =
+            QFileDialog::getExistingDirectory(
+                this,
+                QString("Add Folder to Dock"),
+                QDir::homePath(),
+                QFileDialog::ShowDirsOnly |
+                    QFileDialog::DontResolveSymlinks);
+
+        if (path.isEmpty()) {
+          return;
+        }
+
+        QFileInfo info(path);
+
+        QString label = info.fileName();
+
+        if (label.isEmpty()) {
+          label = path;
+        }
+
+        const QString stackId =
+            QString("CustomFolder_%1")
+                .arg(qHash(path));
+
+        // Save the custom folder so it returns after restart.
+        QSettings settings(
+            QDir::homePath() +
+                "/.config/macaque-dock/KDE/appearance.conf",
+            QSettings::IniFormat);
+
+        QStringList folders =
+            settings.value(
+                "FolderStacks/customFolders")
+                .toStringList();
+
+        if (!folders.contains(path)) {
+          folders.append(path);
+          settings.setValue(
+              "FolderStacks/customFolders",
+              folders);
+          settings.sync();
+        }
+
+        auto stack =
+            std::make_unique<FolderStack>(
+                this,
+                model_,
+                orientation_,
+                minSize_,
+                maxSize_,
+                stackId,
+                label,
+                QStandardPaths::HomeLocation);
+
+        items_.push_back(std::move(stack));
+
+        updateLayout();
+        update();
+      });
+
   panelMenu->addSeparator();
 
   QMenu* extraComponents = panelMenu->addMenu(QString("&Optional Features"));
@@ -1641,8 +1712,103 @@ bool DockPanel::hasTask(void* window) {
 
 void DockPanel::initFolderStack() {
 
+  // Downloads stack.
   items_.push_back(std::make_unique<FolderStack>(
-      this, model_, orientation_, minSize_, maxSize_));
+      this,
+      model_,
+      orientation_,
+      minSize_,
+      maxSize_,
+      "Downloads",
+      "Downloads",
+      QStandardPaths::DownloadLocation));
+
+  // Restore custom folder stacks.
+  QSettings settings(
+      QDir::homePath() +
+          "/.config/macaque-dock/KDE/appearance.conf",
+      QSettings::IniFormat);
+
+  const QStringList customFolders =
+      settings.value(
+          "FolderStacks/customFolders")
+          .toStringList();
+
+  for (const QString& path : customFolders) {
+    if (path.isEmpty() || !QDir(path).exists()) {
+      continue;
+    }
+
+    QFileInfo info(path);
+
+    QString label = info.fileName();
+
+    if (label.isEmpty()) {
+      label = path;
+    }
+
+    const QString stackId =
+        QString("CustomFolder_%1")
+            .arg(qHash(path));
+
+    items_.push_back(std::make_unique<FolderStack>(
+        this,
+        model_,
+        orientation_,
+        minSize_,
+        maxSize_,
+        stackId,
+        label,
+        QStandardPaths::HomeLocation));
+  }
+}
+
+void DockPanel::removeFolderStack(const QString& stackId) {
+  if (stackId == "Downloads") {
+    return;
+  }
+
+  for (auto it = items_.begin(); it != items_.end(); ++it) {
+    auto* stack = dynamic_cast<FolderStack*>(it->get());
+
+    if (stack && stack->stackId() == stackId) {
+      QSettings settings(
+          QDir::homePath() +
+              "/.config/macaque-dock/KDE/appearance.conf",
+          QSettings::IniFormat);
+
+      QStringList folders =
+          settings.value(
+              "FolderStacks/customFolders")
+              .toStringList();
+
+      // Remove the saved folder whose generated stack ID
+      // matches the stack being removed.
+      for (auto folderIt = folders.begin();
+           folderIt != folders.end();) {
+
+        const QString savedStackId =
+            QString("CustomFolder_%1")
+                .arg(qHash(*folderIt));
+
+        if (savedStackId == stackId) {
+          folderIt = folders.erase(folderIt);
+        } else {
+          ++folderIt;
+        }
+      }
+
+      settings.setValue(
+          "FolderStacks/customFolders",
+          folders);
+      settings.sync();
+
+      items_.erase(it);
+      updateLayout();
+      update();
+      return;
+    }
+  }
 }
 
 void DockPanel::initTrash() {

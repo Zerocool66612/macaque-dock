@@ -19,7 +19,11 @@ class FolderStack : public QObject, public IconBasedDockItem {
               MultiDockModel* model,
               Qt::Orientation orientation,
               int minSize,
-              int maxSize);
+              int maxSize,
+              const QString& stackId = "Downloads",
+              const QString& initialLabel = "Downloads",
+              QStandardPaths::StandardLocation initialLocation =
+                  QStandardPaths::DownloadLocation);
 
   ~FolderStack() override = default;
 
@@ -31,7 +35,15 @@ class FolderStack : public QObject, public IconBasedDockItem {
   }
 
   QString getAppId() const override {
-    return "macaque-downloads-stack";
+    return "macaque-folder-stack-" + stackId_;
+  }
+
+  QString stackId() const {
+    return stackId_;
+  }
+
+  QString folderPath() const {
+    return folderPath_;
   }
 
   bool beforeTask(const QString& program) override {
@@ -50,6 +62,7 @@ class FolderStack : public QObject, public IconBasedDockItem {
       QStandardPaths::StandardLocation location,
       const QString& label);
 
+  QString stackId_ = "Downloads";
   QString folderPath_;
   QString folderLabel_ = "Downloads";
   QWidget* fanPopup_ = nullptr;

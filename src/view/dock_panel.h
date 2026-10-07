@@ -124,6 +124,9 @@ class DockPanel : public QWidget {
   // Sets whether the dock is showing some popup menu.
   void setShowingPopup(bool showingPopup);
 
+  // Removes a non-default folder stack from the dock.
+  void removeFolderStack(const QString& stackId);
+
  public slots:
   // Reloads the items and updates the dock.
   void reload();
