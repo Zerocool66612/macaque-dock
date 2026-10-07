@@ -24,6 +24,7 @@
 #include <QIcon>
 #include <QSharedMemory>
 #include <QStringList>
+#include <QDBusConnection>
 
 #include <model/multi_dock_model.h>
 #include <view/multi_dock_view.h>
@@ -95,6 +96,23 @@ int main(int argc, char** argv) {
   maybeCopyPresetConfigOnFirstRun(configDir);
   crystaldock::MultiDockModel model(configDir);
   crystaldock::MultiDockView view(&model);
+
+  // D-Bus endpoint used by KWin's modifier-only Super/Meta shortcut.
+  auto bus = QDBusConnection::sessionBus();
+
+  if (!bus.registerService("org.macaque.Dock")) {
+    std::cerr << "Failed to register Macaque D-Bus service: "
+              << bus.lastError().message().toStdString() << std::endl;
+  }
+
+  if (!bus.registerObject(
+          "/MacaqueDock",
+          &view,
+          QDBusConnection::ExportScriptableSlots |
+          QDBusConnection::ExportAllSlots)) {
+    std::cerr << "Failed to register Macaque D-Bus object: "
+              << bus.lastError().message().toStdString() << std::endl;
+  }
 
   view.show();
   return app.exec();

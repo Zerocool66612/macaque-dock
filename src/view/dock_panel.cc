@@ -25,7 +25,10 @@
 #include <limits>
 #include <utility>
 
+#include <QAction>
 #include <QColor>
+#include <QKeySequence>
+#include <KGlobalAccel>
 #include <QCursor>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
@@ -95,7 +98,39 @@ DockPanel::DockPanel(MultiDockView* parent, MultiDockModel* model, int dockId)
       isLeaving_(false),
       isAnimationActive_(false),
       isShowingPopup_(false),
-      animationTimer_(std::make_unique<QTimer>(this)) {  
+      animationTimer_(std::make_unique<QTimer>(this)) {
+
+  // MacaqueOS global Application Launcher shortcut.
+  // Only the primary dock registers it, preventing duplicate global actions
+  // when multiple docks are configured.
+  if (dockId_ == 1) {
+    auto* launchpadAction = new QAction(
+        tr("Macaque Application Launcher"), this);
+
+    launchpadAction->setObjectName("MacaqueApplicationLauncher");
+
+    connect(launchpadAction, &QAction::triggered,
+            this, &DockPanel::toggleLaunchpad);
+
+    const QKeySequence metaShortcut(QStringLiteral("Meta"));
+
+    KGlobalAccel::self()->setDefaultShortcut(
+        launchpadAction,
+        {metaShortcut},
+        KGlobalAccel::NoAutoloading);
+
+    const bool shortcutRegistered =
+        KGlobalAccel::self()->setShortcut(
+            launchpadAction,
+            {metaShortcut},
+            KGlobalAccel::NoAutoloading);
+
+    std::cerr
+        << "[MACAQUE] Super/Meta launcher shortcut registered: "
+        << (shortcutRegistered ? "yes" : "no")
+        << std::endl;
+  }
+  
   setAttribute(Qt::WA_TranslucentBackground);
   setWindowFlag(Qt::FramelessWindowHint);
   setMouseTracking(true);
@@ -302,6 +337,7 @@ void DockPanel::removeDock() {
 }
 
 void DockPanel::onWindowAdded(const WindowInfo* info) {
+
   intellihideHideUnhide();
   if (autoHide() && !isHidden_) { setAutoHide(); }
 
@@ -1379,9 +1415,20 @@ void DockPanel::loadAppearanceConfig() {
 }
 
 void DockPanel::initApplicationMenu() {
+  applicationMenu_ = nullptr;
+
   if (showApplicationMenu_) {
-    items_.push_back(std::make_unique<ApplicationMenu>(
-        this, model_, orientation_, minSize_, maxSize_));
+    auto menu = std::make_unique<ApplicationMenu>(
+        this, model_, orientation_, minSize_, maxSize_);
+
+    applicationMenu_ = menu.get();
+    items_.push_back(std::move(menu));
+  }
+}
+
+void DockPanel::toggleLaunchpad() {
+  if (applicationMenu_) {
+    applicationMenu_->toggleLaunchpad();
   }
 }
 

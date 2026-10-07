@@ -123,17 +123,26 @@ void ApplicationMenu::mousePressEvent(QMouseEvent *e) {
     showingMenu_ = true;
     parent_->update();
 
-    if (launchpad_ && launchpad_->isVisible()) {
-      launchpad_->hide();
-      showingMenu_ = false;
-      parent_->setShowingPopup(false);
-      parent_->update();
-    } else {
-      showLaunchpad();
-    }
+    toggleLaunchpad();
   } else if (e->button() == Qt::RightButton) {
     showPopupMenu(&contextMenu_);
   }
+}
+
+void ApplicationMenu::toggleLaunchpad() {
+
+  if (launchpad_ && launchpad_->isVisible()) {
+    launchpad_->hide();
+    showingMenu_ = false;
+    parent_->setShowingPopup(false);
+    parent_->update();
+    return;
+  }
+
+  parent_->setShowingPopup(true);
+  showingMenu_ = true;
+  parent_->update();
+  showLaunchpad();
 }
 
 void ApplicationMenu::reloadMenu() {
@@ -169,23 +178,16 @@ void ApplicationMenu::searchApps(const QString& searchText_) {
 }
 
 bool ApplicationMenu::eventFilter(QObject* object, QEvent* event) {
-  // Launchpad is intentionally a normal frameless dialog instead of Qt::Popup
-  // because Qt::Popup causes positioning problems on Wayland. Close it when
-  // it loses activation, which gives us click-outside-to-close behavior.
-  if (object == launchpad_ && event->type() == QEvent::WindowDeactivate) {
-    launchpad_->hide();
-    showingMenu_ = false;
-    parent_->setShowingPopup(false);
-    parent_->update();
-    return false;
-  }
-
   if (event->type() == QEvent::MouseButtonPress) {
-    auto* activeItem = (dynamic_cast<QMenu*>(object))->activeAction();
+    auto* menu = qobject_cast<QMenu*>(object);
     QMouseEvent* mouseEvent = dynamic_cast<QMouseEvent*>(event);
-    if (mouseEvent && mouseEvent->button() == Qt::LeftButton && activeItem) {
-      startMousePos_ = mouseEvent->pos();
-      draggedEntry_ = activeItem->data().toString();
+
+    if (menu && mouseEvent) {
+      auto* activeItem = menu->activeAction();
+      if (mouseEvent->button() == Qt::LeftButton && activeItem) {
+        startMousePos_ = mouseEvent->pos();
+        draggedEntry_ = activeItem->data().toString();
+      }
     }
   } else if (event->type() == QEvent::MouseMove) {
     QMouseEvent* mouseEvent = dynamic_cast<QMouseEvent*>(event);

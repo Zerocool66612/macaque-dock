@@ -18,6 +18,7 @@
 
 #include "multi_dock_view.h"
 
+
 #include <QCoreApplication>
 #include <QGuiApplication>
 #include <QMessageBox>
@@ -66,6 +67,14 @@ void MultiDockView::show() {
 void MultiDockView::exit() {
   for (const auto& dock : docks_) {
     dock.second->close();
+  }
+}
+
+void MultiDockView::toggleLaunchpad() {
+  auto dock = docks_.find(1);
+
+  if (dock != docks_.end() && dock->second) {
+    dock->second->toggleLaunchpad();
   }
 }
 

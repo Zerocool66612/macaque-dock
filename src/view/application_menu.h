@@ -86,6 +86,9 @@ class ApplicationMenu : public QObject, public IconBasedDockItem {
 
   void searchApps(const QString& searchText);
 
+  // Opens or closes the MacaqueOS Application Launcher.
+  void toggleLaunchpad();
+
  protected:
   // To support drag applications from the sub-menu to Edit Launchers dialog.
   bool eventFilter(QObject* object, QEvent* event) override;

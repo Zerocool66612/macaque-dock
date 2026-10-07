@@ -34,6 +34,7 @@ namespace crystaldock {
 // The view.
 class MultiDockView : public QObject {
   Q_OBJECT
+  Q_CLASSINFO("D-Bus Interface", "org.macaque.Dock")
 
  public:
   // No pointer ownership.
@@ -46,6 +47,9 @@ class MultiDockView : public QObject {
 
  public slots:
   void exit();
+
+  // Exposed over D-Bus so KWin can toggle the Macaque launcher.
+  void toggleLaunchpad();
 
   void onDockAdded(int dockId);
 

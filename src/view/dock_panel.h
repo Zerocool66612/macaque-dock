@@ -52,6 +52,8 @@
 
 namespace crystaldock {
 
+class ApplicationMenu;
+
 class MultiDockView;
 
 // A dock panel. The user can have multiple dock panels at the same time.
@@ -165,6 +167,9 @@ class DockPanel : public QWidget {
     reload();
     saveDockConfig();
   }
+
+  // Opens or closes the MacaqueOS Application Launcher.
+  void toggleLaunchpad();
 
   void togglePager();
 
@@ -441,6 +446,9 @@ class DockPanel : public QWidget {
 
   // The list of all dock items.
   std::vector<std::unique_ptr<DockItem>> items_;
+
+  // Non-owning pointer. The ApplicationMenu itself is owned by items_.
+  ApplicationMenu* applicationMenu_ = nullptr;
   int activeItem_ = -1;
 
   // Macaque Dock launcher rearranging.

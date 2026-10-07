@@ -22,6 +22,7 @@ endif()
 find_package(Wayland 1.22 REQUIRED COMPONENTS Client)
 find_package(LayerShellQt 6.0 REQUIRED)
 find_package(KF6WindowSystem REQUIRED)
+find_package(KF6GlobalAccel REQUIRED)
 
 set(SRCS
     desktop/desktop_env.cc
@@ -143,7 +144,7 @@ set(SRCS
     view/wifi_connection_dialog.ui)
 add_library(macaque-dock_lib STATIC ${SRCS})
 
-set(LIBS Qt6::DBus Qt6::GuiPrivate Qt6::Widgets Wayland::Client LayerShellQt::Interface KF6::WindowSystem)
+set(LIBS Qt6::DBus Qt6::GuiPrivate Qt6::Widgets Wayland::Client LayerShellQt::Interface KF6::WindowSystem KF6::GlobalAccel)
 target_link_libraries(macaque-dock_lib ${LIBS})
 
 add_executable(macaque-dock main.cc)
