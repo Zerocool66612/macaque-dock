@@ -14,3 +14,9 @@ debian/macaque-dock-dbgsym/
 debian/files
 debian/*.debhelper.log
 debian/*.substvars
+
+# Generated Debian packaging files
+/debian/.debhelper/
+/debian/macaque-dock/
+/debian/macaque-dock-dbgsym/
+/debian/files
