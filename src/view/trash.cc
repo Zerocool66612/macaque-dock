@@ -118,10 +118,17 @@ void Trash::openTrash() {
 
   if (runningInFlatpak) {
     QProcess::startDetached(
-        QStringLiteral("flatpak-spawn"),
-        {QStringLiteral("--host"),
-         QStringLiteral("dolphin"),
-         QStringLiteral("trash:/")});
+        QStringLiteral("gdbus"),
+        {QStringLiteral("call"),
+         QStringLiteral("--session"),
+         QStringLiteral("--dest"),
+         QStringLiteral("org.freedesktop.FileManager1"),
+         QStringLiteral("--object-path"),
+         QStringLiteral("/org/freedesktop/FileManager1"),
+         QStringLiteral("--method"),
+         QStringLiteral("org.freedesktop.FileManager1.ShowFolders"),
+         QStringLiteral("['trash:/']"),
+         QStringLiteral("")});
     return;
   }
 
