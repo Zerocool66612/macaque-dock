@@ -484,6 +484,15 @@ class MultiDockModel : public QObject {
     setAppearanceProperty(kTaskManagerCategory, kGroupTasksByApplication, value);
   }
 
+  bool horizontalTaskScrolling() const {
+    return appearanceProperty(kTaskManagerCategory, "horizontalTaskScrolling",
+                              false);
+  }
+
+  void setHorizontalTaskScrolling(bool value) {
+    setAppearanceProperty(kTaskManagerCategory, "horizontalTaskScrolling", value);
+  }
+
   bool use24HourClock() const {
     return appearanceProperty(kClockCategory, kUse24HourClock,
                               kDefaultUse24HourClock);

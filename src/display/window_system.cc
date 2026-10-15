@@ -58,19 +58,10 @@ std::unique_ptr<QDBusInterface> WindowSystem::activityManager_;
   wl_display_roundtrip(display);
 
   if (!kde_window_management_ && !wlr_window_manager_) {
-    const bool runningInFlatpak =
-        qEnvironmentVariableIsSet("FLATPAK_ID") ||
-        QFileInfo::exists("/.flatpak-info");
-
-    if (runningInFlatpak) {
-      std::cerr
-          << "Flatpak: window-management protocol unavailable; "
-             "continuing without task-manager integration."
-          << std::endl;
-    } else {
-      std::cerr << "Failed to bind required Wayland interfaces" << std::endl;
-      return false;
-    }
+    std::cerr
+        << "Macaque Dock: window-management protocol unavailable; "
+           "continuing without task-manager integration."
+        << std::endl;
   }
 
   if (kde_virtual_desktop_management_) {
@@ -196,7 +187,8 @@ void WindowSystem::initScreens() {
   } else if (std::string(interface) == "org_kde_plasma_window_management") {
     kde_window_management_ =
         reinterpret_cast<org_kde_plasma_window_management*>(wl_registry_bind(
-            registry, name, &org_kde_plasma_window_management_interface, 16));
+            registry, name, &org_kde_plasma_window_management_interface,
+               std::min(version, 16u)));
     if (!kde_window_management_) {
       std::cerr << "Failed to bind org_kde_plasma_window_management Wayland interface. "
                 << "Maybe another client has already bound it?" << std::endl;

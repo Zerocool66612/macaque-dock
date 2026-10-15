@@ -21,6 +21,7 @@
 #include <iostream>
 
 #include <QDir>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -30,6 +31,8 @@
 #include <QTimer>
 
 #include "display/window_system.h"
+#include "utils/desktop_file.h"
+#include "utils/command_utils.h"
 
 #include "dock_panel.h"
 #include <utils/draw_utils.h>
@@ -226,11 +229,17 @@ void Program::mousePressEvent(QMouseEvent* e) {
 }
 
 void Program::wheelEvent(QWheelEvent* e) {
-  const int delta = e->angleDelta().y();
-  if (delta == 0) {
+  const QPoint delta = e->angleDelta();
+
+  const int scrollDelta = model_->horizontalTaskScrolling()
+                              ? delta.x()
+                              : delta.y();
+
+  if (scrollDelta == 0) {
     return;
   }
-  cycleThroughTasks(delta < 0);
+
+  cycleThroughTasks(scrollDelta < 0);
 }
 
 void Program::cycleThroughTasks(bool forward) {
@@ -408,8 +417,80 @@ void Program::createMenu() {
     pinAction_->setChecked(pinned_);
   }
 
-  if (isAppMenuEntry_) {
-    menu_.addAction(QIcon::fromTheme("list-add"), QString("&New Window"), this,
+  // Read application-specific actions from its .desktop file.
+  bool hasNewWindowAction = false;
+
+  QString desktopPath;
+
+  if (const auto* app = model_->findApplication(appId_.toStdString())) {
+    desktopPath = app->desktopFile;
+  }
+
+  // Look for applications installed through Snap or regular desktop files.
+  if (desktopPath.isEmpty() || !QFileInfo::exists(desktopPath)) {
+    const QStringList directories = {
+        QDir::homePath() + "/.local/share/applications",
+        "/usr/share/applications",
+        "/usr/local/share/applications",
+        "/var/lib/snapd/desktop/applications"
+    };
+
+    const QString normalizedId = appId_.toLower();
+
+    for (const QString& directory : directories) {
+      QDir dir(directory);
+
+      const QStringList files =
+          dir.entryList({"*.desktop"}, QDir::Files);
+
+      for (const QString& file : files) {
+        const QString baseName =
+            QFileInfo(file).completeBaseName().toLower();
+
+        if (baseName == normalizedId ||
+            baseName.endsWith("_" + normalizedId)) {
+          desktopPath = dir.filePath(file);
+          break;
+        }
+      }
+
+      if (!desktopPath.isEmpty() && QFileInfo::exists(desktopPath)) {
+        break;
+      }
+    }
+  }
+
+  if (!desktopPath.isEmpty() && QFileInfo::exists(desktopPath)) {
+    DesktopFile desktopFile(desktopPath);
+
+    for (const auto& desktopAction : desktopFile.actions()) {
+      const QString actionCommand =
+          filterFieldCodes(desktopAction.exec);
+
+      if (actionCommand.isEmpty()) {
+        continue;
+      }
+
+      if (desktopAction.name.compare(
+              "New Window", Qt::CaseInsensitive) == 0) {
+        hasNewWindowAction = true;
+      }
+
+      const QIcon actionIcon = desktopAction.icon.isEmpty()
+          ? QIcon()
+          : QIcon::fromTheme(desktopAction.icon);
+
+      menu_.addAction(actionIcon, desktopAction.name, this,
+                      [actionCommand] {
+                        Program::launch(actionCommand);
+                      });
+    }
+  }
+
+  // Fallback when no desktop-defined New Window action exists.
+  if (isAppMenuEntry_ && !hasNewWindowAction) {
+    menu_.addAction(QIcon::fromTheme("list-add"),
+                    QString("&New Window"), this,
                     [this] { launch(); });
   }
 

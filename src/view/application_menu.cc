@@ -178,6 +178,16 @@ void ApplicationMenu::searchApps(const QString& searchText_) {
 }
 
 bool ApplicationMenu::eventFilter(QObject* object, QEvent* event) {
+  if (launchpad_ && object == launchpad_ &&
+      event->type() == QEvent::WindowDeactivate &&
+      launchpad_->isVisible()) {
+    launchpad_->hide();
+    showingMenu_ = false;
+    parent_->setShowingPopup(false);
+    parent_->update();
+    return false;
+  }
+
   if (event->type() == QEvent::MouseButtonPress) {
     auto* menu = qobject_cast<QMenu*>(object);
     QMouseEvent* mouseEvent = dynamic_cast<QMouseEvent*>(event);
@@ -339,7 +349,7 @@ void ApplicationMenu::showLaunchpad() {
     launchpad_ = new QDialog(parent_);
     launchpad_->setWindowTitle("Macaque Launchpad");
     launchpad_->setWindowFlags(
-        Qt::Dialog |
+        Qt::Tool |
         Qt::FramelessWindowHint);
 
     launchpad_->setAttribute(Qt::WA_TranslucentBackground);

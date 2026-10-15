@@ -19,6 +19,7 @@
 #ifndef CRYSTALDOCK_DESKTOP_FILE_H
 #define CRYSTALDOCK_DESKTOP_FILE_H
 
+#include <QList>
 #include <QMap>
 #include <QString>
 #include <QStringList>
@@ -32,6 +33,15 @@ class DesktopFile {
   DesktopFile() {}
   DesktopFile(const QString &file);
   bool write(const QString &file);
+
+  struct Action {
+    QString id;
+    QString name;
+    QString exec;
+    QString icon;
+  };
+
+  QList<Action> actions() const;
 
   QString appId() const { return appId_; }
 
@@ -74,6 +84,7 @@ class DesktopFile {
  private:
   QString appId_;
   QMap<QString, QString> values_;
+  QMap<QString, QMap<QString, QString>> actionValues_;
 };
 
 }  // namespace crystaldock

@@ -30,23 +30,61 @@ DesktopFile::DesktopFile(const QString& file) {
   if (inputFile.open(QIODevice::ReadOnly)) {
     appId_ = QFileInfo(file).completeBaseName().toLower();
     QTextStream input(&inputFile);
-    bool parsing = false;
+    QString section;
     while (!input.atEnd()) {
-      QString line = input.readLine().trimmed();
-      if (!parsing) {
-        if (line == "[Desktop Entry]") {
-          parsing = true;
-        }
-      } else {
-        int index = line.indexOf('=');
-        if (index >= 0 && index < line.length() - 1) {
-          values_[line.left(index)] = line.mid(index + 1);
-        } else if (line.startsWith("[")) {  // start of a new section.
-          break;
-        }
+      const QString line = input.readLine().trimmed();
+
+      if (line.startsWith('[') && line.endsWith(']')) {
+        section = line.mid(1, line.size() - 2);
+        continue;
+      }
+
+      if (line.isEmpty() || line.startsWith('#')) {
+        continue;
+      }
+
+      const int index = line.indexOf('=');
+      if (index <= 0) {
+        continue;
+      }
+
+      const QString key = line.left(index);
+      const QString value = line.mid(index + 1);
+
+      if (section == "Desktop Entry") {
+        values_[key] = value;
+      } else if (section.startsWith("Desktop Action ")) {
+        actionValues_[section.mid(15)][key] = value;
       }
     }
   }
+}
+
+QList<DesktopFile::Action> DesktopFile::actions() const {
+  QList<Action> result;
+
+  const QStringList ids =
+      values_.value("Actions").split(';', Qt::SkipEmptyParts);
+
+  for (const QString& id : ids) {
+    if (!actionValues_.contains(id)) {
+      continue;
+    }
+
+    const auto& values = actionValues_[id];
+
+    Action action;
+    action.id = id;
+    action.name = values.value("Name");
+    action.exec = values.value("Exec");
+    action.icon = values.value("Icon");
+
+    if (!action.name.isEmpty() && !action.exec.isEmpty()) {
+      result.append(action);
+    }
+  }
+
+  return result;
 }
 
 bool DesktopFile::write(const QString &file) {
