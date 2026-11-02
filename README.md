@@ -83,10 +83,3 @@ See the repository license and individual source-file notices for complete licen
 
 **Macaque Dock 1.0.0**
 
-## Screenshots
-
-### Macaque Dock
-![Macaque Dock](screenshots/macaque-dock.png)
-
-### Launchpad
-![Macaque Dock Launchpad](screenshots/launchpad.png)
