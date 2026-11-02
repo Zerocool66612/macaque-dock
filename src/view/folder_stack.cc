@@ -863,8 +863,8 @@ void FolderStack::openPath(const QString& path) {
 
 void FolderStack::openDownloads() {
   QProcess::startDetached(
-      "xdg-open",
-      QStringList() << folderPath_);
+      "dolphin",
+      QStringList() << "--new-window" << folderPath_);
 }
 
 }  // namespace crystaldock
